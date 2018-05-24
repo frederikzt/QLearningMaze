@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Line?>
+
+<HBox xmlns="http://javafx.com/javafx/8.0.162-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="dk.ruc.bachelor.Controller">
+   <children>
+        <Canvas fx:id="canvas" height="400.0" width="400.0" />
+      <HBox>
+         <children>
+            <VBox>
+               <children>
+                   <Label text="Select map to train agent in " />
+                   <RadioButton fx:id="rbZero" mnemonicParsing="false" text="Zero" />
+                   <RadioButton fx:id="rbRandom1" mnemonicParsing="false" text="Custom 1" />
+                   <RadioButton fx:id="rbRandom2" mnemonicParsing="false" text="Custom 1" />
+                   <RadioButton fx:id="rbRandom3" mnemonicParsing="false" text="Custom 1" />
+                   <RadioButton fx:id="rbCustom1" mnemonicParsing="false" text="Custom 1" />
+                   <RadioButton fx:id="rbRandomLevels" mnemonicParsing="false" text="Random levels" />
+                   <Button fx:id="buttonRandomMap" mnemonicParsing="false" onAction="#buttonRandomMap" text="New random level" />
+               </children>
+            </VBox>
+            <Line endY="400.0" startY="0.0" />
+             <VBox>
+                 <children>
+                     <Button fx:id="buttonTrain" mnemonicParsing="false" onAction="#buttonTrain" text="Train agent" />
+                     <Label fx:id="labelTrained" text="Agent not trained" />
+                     <Button fx:id="buttonReset" mnemonicParsing="false" onAction="#buttonReset" text="Reset training" />
+                     <Button fx:id="buttonRun" mnemonicParsing="false" onAction="#buttonRun" text="Run" />
+                     <Label fx:id="labelSteps" text="Steps:" />
+                 </children>
+             </VBox>
+         </children>
+      </HBox>
+   </children>
+</HBox>
