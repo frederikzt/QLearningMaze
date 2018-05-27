@@ -13,21 +13,36 @@ import javafx.scene.paint.Color;
  */
 public class Controller {
 
+    //The logic used for anything game and training related
     Logic logic;
+
+    //Animation timer used for the game loop
     AnimationTimer gameLoopTimer;
+
+    //Fixed framerate
     int framesPerSecond = 60;
 
+    //JavaFX elements
     public Canvas canvas;
     public Label labelTrained, labelSteps;
     public Button buttonTrain, buttonReset, buttonRun, buttonRandomMap;
-    public RadioButton rbZero, rbRandom1, rbRandom2, rbRandom3, rbCustom1, rbCustom2, rbRandomLevels;
+    public RadioButton rbZero, rbRandom1, rbRandom2, rbRandom3, rbCustom1, rbCustom2, rbCustom3, rbCustom4, rbRandomLevels;
     public ToggleGroup tgMap = new ToggleGroup();
+    public RadioButton rbTrain10, rbTrain100, rbTrain1000;
+    public ToggleGroup tgTrainings = new ToggleGroup();
 
+    //Booleans if the game is running or training
     boolean running = false;
     boolean training = false;
+
+    //the current map
     int currentMap = 0;
+
+    //Counter for training rounds done
     int trainingCount = 0;
-    int trainingRounds = 100;
+
+    //Fixed number of training rounds each time an agent is trained
+    int trainingRounds = 10;
 
     /**
      * Initializes everything and displays the game once started up
@@ -40,15 +55,30 @@ public class Controller {
         rbRandom2.setToggleGroup(tgMap);
         rbRandom3.setToggleGroup(tgMap);
         rbCustom1.setToggleGroup(tgMap);
+        rbCustom2.setToggleGroup(tgMap);
+        rbCustom3.setToggleGroup(tgMap);
+        rbCustom4.setToggleGroup(tgMap);
         rbRandomLevels.setToggleGroup(tgMap);
         rbZero.setSelected(true);
 
-        rbZero.setOnAction(e -> setMap(0));
-        rbRandom1.setOnAction(e -> setMap(1));
-        rbRandom2.setOnAction(e -> setMap(2));
-        rbRandom3.setOnAction(e -> setMap(3));
-        rbCustom1.setOnAction(e -> setMap(4));
-        rbRandomLevels.setOnAction(e -> setMap(7));
+        rbZero.setOnAction(e -> changeMap(0));
+        rbRandom1.setOnAction(e -> changeMap(1));
+        rbRandom2.setOnAction(e -> changeMap(2));
+        rbRandom3.setOnAction(e -> changeMap(3));
+        rbCustom1.setOnAction(e -> changeMap(4));
+        rbCustom2.setOnAction(e -> changeMap(5));
+        rbCustom3.setOnAction(e -> changeMap(6));
+        rbCustom4.setOnAction(e -> changeMap(7));
+        rbRandomLevels.setOnAction(e -> changeMap(8));
+
+        rbTrain10.setToggleGroup(tgTrainings);
+        rbTrain100.setToggleGroup(tgTrainings);
+        rbTrain1000.setToggleGroup(tgTrainings);
+        rbTrain10.setSelected(true);
+
+        rbTrain10.setOnAction(e -> trainingRounds = 10);
+        rbTrain100.setOnAction(e -> trainingRounds = 100);
+        rbTrain1000.setOnAction(e -> trainingRounds = 1000);
 
         buttonRandomMap.setDisable(true);
 
@@ -78,11 +108,12 @@ public class Controller {
 
     /**
      * Sets the current map to the new map and displays it
+     *
      * @param map New current map
      */
-    void setMap(int map) {
-        disableRandomMapButton();
+    void changeMap(int map) {
         currentMap = map;
+        disableRandomMapButton();
         logic.setMap(map);
         display();
     }
@@ -91,7 +122,7 @@ public class Controller {
      * Enables or disables the random map button depending on if the current map is random maps
      */
     void disableRandomMapButton() {
-        if (currentMap == 7) buttonRandomMap.setDisable(false);
+        if (currentMap == 8) buttonRandomMap.setDisable(false);
         else buttonRandomMap.setDisable(true);
     }
 
@@ -106,14 +137,20 @@ public class Controller {
         rbRandom2.setDisable(disable);
         rbRandom3.setDisable(disable);
         rbCustom1.setDisable(disable);
+        rbCustom2.setDisable(disable);
+        rbCustom3.setDisable(disable);
+        rbCustom4.setDisable(disable);
         rbRandomLevels.setDisable(disable);
+
+        rbTrain10.setDisable(disable);
+        rbTrain100.setDisable(disable);
+        rbTrain1000.setDisable(disable);
     }
 
     /**
      * When the train button is pressed it's beginning the training and stopping the training if it already trains
      */
     public void buttonTrain() {
-        System.out.println(training);
         if (training == false) {
             training = true;
             buttonTrain.setText("Stop training");
@@ -139,7 +176,7 @@ public class Controller {
     public void buttonReset() {
         labelTrained.setText("Agent not trained");
         buttonTrain.setText("Train agent");
-        buttonRun.setText("Run");
+        buttonRun.setText("Play");
         buttonRun.setDisable(false);
         buttonTrain.setDisable(false);
         disableRadioButtons(false);
@@ -147,14 +184,14 @@ public class Controller {
         running = false;
         training = false;
         trainingCount = 0;
-        setMap(currentMap);
+        changeMap(currentMap);
     }
 
     /**
      * Generate new map by setting the map to current map which is random maps. This will generate a new map
      */
     public void buttonRandomMap() {
-        setMap(currentMap);
+        changeMap(currentMap);
     }
 
     /**
@@ -162,7 +199,7 @@ public class Controller {
      */
     public void buttonRun() {
         if (running) {
-            buttonRun.setText("Run");
+            buttonRun.setText("Play");
             running = false;
             buttonTrain.setDisable(false);
             buttonReset.setDisable(false);
@@ -201,7 +238,7 @@ public class Controller {
         }
         //If it should run
         if (running == true) {
-            boolean reachedGoal = logic.move();
+            boolean reachedGoal = logic.doAction(false);
             labelSteps.setText("Steps: " + logic.savedMoves);
             display();
             if (reachedGoal) {
@@ -210,7 +247,7 @@ public class Controller {
                 disableRandomMapButton();
                 disableRadioButtons(false);
                 running = false;
-                buttonRun.setText("Run");
+                buttonRun.setText("Play");
             }
         }
     }
@@ -233,7 +270,19 @@ public class Controller {
                 canvas.getGraphicsContext2D().strokeRect(logic.cellSize * i, logic.cellSize * j, logic.cellSize, logic.cellSize);
             }
         }
+        //Vision for the agent
         canvas.getGraphicsContext2D().setStroke(Color.RED);
         canvas.getGraphicsContext2D().strokeRect(logic.cellSize * logic.agentX - logic.cellSize, logic.cellSize * logic.agentY - logic.cellSize, logic.cellSize * 3, logic.cellSize * 3);
+
+        //Q-values for each action in the state
+        canvas.getGraphicsContext2D().setFill(Color.BLACK);
+        int state = logic.findStateId();
+        double centerOfAgentX = logic.cellSize * logic.agentX + logic.cellSize / 2;
+        double centerOfAgentY = logic.cellSize * logic.agentY + logic.cellSize / 2;
+        canvas.getGraphicsContext2D().fillText("" + logic.Q[state][0], centerOfAgentX, centerOfAgentY - logic.cellSize);
+        canvas.getGraphicsContext2D().fillText("" + logic.Q[state][1], centerOfAgentX - logic.cellSize, centerOfAgentY);
+        canvas.getGraphicsContext2D().fillText("" + logic.Q[state][2], centerOfAgentX + logic.cellSize, centerOfAgentY);
+        canvas.getGraphicsContext2D().fillText("" + logic.Q[state][3], centerOfAgentX, centerOfAgentY + logic.cellSize);
+
     }
 }

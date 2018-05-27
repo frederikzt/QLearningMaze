@@ -9,33 +9,48 @@ import static java.lang.Math.pow;
  */
 class Logic {
 
+    // Random object
     Random random = new Random();
+
+    //MapLibrary object
     MapLibrary mapLibrary = new MapLibrary();
 
+    //gameWidth and gameHeight is used to find the cellSize
     double gameWidth;
     double gameHeight;
     double cellSize;
 
+    //Fixed grid size for all maps
     int columns = 15;
     int rows = 15;
 
+    //Agents positions and previous positions
     int agentX, agentY;
     int previousAgentX, previousAgentY;
 
+    //Alpha, gamma, Q-zero and reward values
     double alpha = 0.8;
     double gamma = 0.8;
+    int QZero = 0;
+    int rewardValue = 10000000;
 
+    //The number of states and actions
     int numberOfStates = (int) pow(3, 8); //6561
     int numberOfActions = 4; //up, down, left, right
 
+    //State action and old state action
     int state;
     int action;
     int oldState;
     int oldAction;
 
+    //2D arrays for the Q, R table and the map
     int[][] Q, R, map;
+
+    //Selected map
     int selectedMap;
 
+    //Moves and saved moves
     int moves, savedMoves;
 
     /**
@@ -68,7 +83,14 @@ class Logic {
      */
     void initializeMap() {
         if (selectedMap == 0) map = mapLibrary.zero;
-        else map = mapLibrary.randomMap(columns, rows, 5);
+        else if (selectedMap == 1) map = mapLibrary.random1;
+        else if (selectedMap == 2) map = mapLibrary.random2;
+        else if (selectedMap == 3) map = mapLibrary.random3;
+        else if (selectedMap == 4) map = mapLibrary.custom1;
+        else if (selectedMap == 5) map = mapLibrary.custom2;
+        else if (selectedMap == 6) map = mapLibrary.custom3;
+        else if (selectedMap == 7) map = mapLibrary.custom4;
+        else map = mapLibrary.randomMap(columns, rows, 9);
 
         //Workaround
         for (int i = 0; i < columns - 1; i++) {
@@ -89,13 +111,15 @@ class Logic {
 
         for (int i = 0; i < numberOfStates; i++) {
             for (int j = 0; j < numberOfActions; j++) {
-                Q[i][j] = 0;
+                Q[i][j] = QZero;
                 R[i][j] = 0;
             }
         }
     }
 
-    /** Sets the map and initializes it and the tables
+    /**
+     * Sets the map and initializes it and the tables
+     *
      * @param map What the map should be set to
      */
     void setMap(int map) {
@@ -104,7 +128,7 @@ class Logic {
         moves = 0;
         selectedMap = map;
         initializeMap();
-        initializeTables();
+        //initializeTables();
     }
 
     /**
@@ -114,7 +138,9 @@ class Logic {
      */
     void trainAgent(int map) {
         setMap(map);
-        while (!move()) ;
+        for (int i = 0; i < 7; i++) {
+            while (!doAction(true)) ;
+        }
     }
 
     /**
@@ -122,7 +148,7 @@ class Logic {
      *
      * @return returns true if it reached goal and false is not
      */
-    boolean move() {
+    boolean doAction(boolean shouldTrain) {
         state = findStateId(); //Find id of current position
         updateRTable(); //Update the R-table for this state
         action = decideAction();
@@ -140,19 +166,21 @@ class Logic {
         //Move the agent, update the Q-table and check if it reached goal
         map[agentX][agentY] = 0; //Remove the agent from its current position
         moveAgent(action); //Move the agent according to the action found before
-        updateQTable();
+        if (shouldTrain) updateQTable();
+
         if (map[agentX][agentY] == 2) {
             resetMap();
-            return true; //If moving towards the goal the logic is won
+            return true; //If moving towards the goal the game is won
         } else map[agentX][agentY] = 3;//Else it places the agent at the new position
         return false;
     }
 
     /**
      * Decides the best action from the current state
+     *
      * @return Returns the best action
      */
-    int decideAction(){
+    int decideAction() {
         int bestAction = random.nextInt(4); //The action taken is random unless another actions Q-value is greater
         while (!validAction(bestAction)) bestAction = random.nextInt(4);
 
@@ -162,7 +190,6 @@ class Logic {
                 if (validAction(i)) bestAction = i;
             }
         }
-        System.out.println(agentX+", "+agentY+", a: "+bestAction);
         return bestAction;
     }
 
@@ -207,11 +234,10 @@ class Logic {
      * Change R-table according to goals from the agents position and state
      */
     void updateRTable() {
-        //
-        if (map[agentX][agentY - 1] == 2) R[state][0] = 10000000;
-        if (map[agentX - 1][agentY] == 2) R[state][1] = 10000000;
-        if (map[agentX + 1][agentY] == 2) R[state][2] = 10000000;
-        if (map[agentX][agentY + 1] == 2) R[state][3] = 10000000;
+        if (map[agentX][agentY - 1] == 2) R[state][0] = rewardValue;
+        if (map[agentX - 1][agentY] == 2) R[state][1] = rewardValue;
+        if (map[agentX + 1][agentY] == 2) R[state][2] = rewardValue;
+        if (map[agentX][agentY + 1] == 2) R[state][3] = rewardValue;
     }
 
     /**
@@ -220,7 +246,6 @@ class Logic {
      * @return Returns the id of the state
      */
     int findStateId() {
-        System.out.println(agentX+", "+agentY);
         int stateId = 0;
         int divider = 3;
         for (int i = 0; i < 3; i++) {
@@ -243,7 +268,7 @@ class Logic {
         action = maxQ();
 
         //The Q-table update itself
-        Q[oldState][oldAction] = (int) ((1 - alpha) * Q[oldState][oldAction] + alpha * (R[state][action] + gamma * Q[state][action]));
+        Q[oldState][oldAction] = (int) ((1 - alpha) * Q[oldState][oldAction] + alpha * (R[oldState][oldAction] + gamma * Q[state][action]));
     }
 
     /**
@@ -253,13 +278,13 @@ class Logic {
      */
     int maxQ() {
         double maxQ = 0;
-        int action = 0;
+        int maxQAction = 0;
         for (int i = 0; i < numberOfActions; i++) {
             if (Q[state][i] + R[state][i] >= maxQ) {
                 maxQ = Q[state][i] + R[state][i];
-                action = i;
+                maxQAction = i;
             }
         }
-        return action;
+        return maxQAction;
     }
 }
